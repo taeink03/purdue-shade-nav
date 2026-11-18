@@ -39,13 +39,6 @@ The full list of places, with coordinates and their source, is in the page under
 
 `h` is the tree height in meters and `r` is the crown radius in meters.
 
-## Making it real
-
-1. Replace the simulated trees with a campus tree inventory.
-2. Use GIS building footprints with real heights.
-3. Swap the simplified network for the actual sidewalk graph, for example from OpenStreetMap footways.
-4. Optionally add covered walkways and indoor shortcuts as always-shaded edges.
-
 ## Enabling GitHub Pages
 
 In this repo: **Settings → Pages → Build and deployment → Source: Deploy from a branch → Branch: `main` / `(root)` → Save**.
