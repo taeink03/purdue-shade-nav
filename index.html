@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Purdue Shade Navigation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* VOICE: a practical campus tool, plain-spoken and quick to read
+   IDEA: a sundial laid over the campus map; shadows sweep as the clock moves and the route follows them
+   PICTURE: the live map with cast shadows, the route striped gold for sun and black for shade
+   COLOUR and TYPE: Purdue black and Boilermaker gold on warm limestone pavement; Barlow Condensed + Barlow
+   LAYOUT: slim black title band, map as the stage, planner column at right; stacks title, map, controls on phones */
+:root{color-scheme:light dark;
+--bg:light-dark(#f5f1e8,#111110);--card:light-dark(#fffdf8,#1b1a18);--ink:light-dark(#151412,#eeeae1);--mute:light-dark(#5f5a50,#a59f94);--line:light-dark(#e0d9c9,#2f2d29);
+--gold:#CFB991;--rush:#DAAA00;
+--ground:light-dark(#efe7d3,#1d1c19);--lawn:light-dark(#d9e2bd,#222a1b);--street:light-dark(#fffcf4,#383631);--edge:light-dark(#d6ccb4,#47443d);
+--bld:light-dark(#c6bca7,#4c4840);--bldE:light-dark(#8f8572,#6c665b);--shadow:light-dark(#1b2a3b,#000);--tree:light-dark(#3e6b39,#2d5a2a);--treeHi:light-dark(#79a256,#4a7a3a);--water:light-dark(#8fc0d3,#3e6f80);--steel:light-dark(#6F727B,#9a9da4)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Barlow,system-ui,sans-serif;overflow-x:clip}
+button,select,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--rush);outline-offset:2px}
+.top{background:#0c0c0b;color:#f3efe6;padding:16px max(4vw,16px);display:flex;flex-wrap:wrap;gap:4px 32px;align-items:end;justify-content:space-between}
+.top h1{margin:0;font:700 clamp(32px,4vw,46px)/1.05 'Barlow Condensed',sans-serif;color:var(--gold);text-wrap:balance}
+.top p{margin:0;color:#dcd6c8;max-width:60ch}
+.top small{display:block;color:#a9a395;font-size:13px}
+.app{display:grid;grid-template-columns:minmax(0,1fr) 390px;align-items:start;max-width:1600px;margin:0 auto}
+.mapwrap{position:sticky;top:0;height:min(calc(100vh - var(--hh,96px)),960px);min-height:560px;background:var(--ground);overflow:hidden;border-right:1px solid var(--line)}
+#map{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
+#map.drag{cursor:grabbing}
+.ov{position:absolute;background:color-mix(in srgb,var(--card) 93%,transparent);border:1px solid var(--line);border-radius:10px;box-shadow:0 2px 12px rgb(0 0 0/.12)}
+#sun{left:12px;top:12px;display:flex;gap:10px;align-items:center;padding:6px 14px 6px 6px;max-width:calc(100% - 90px)}
+#sun b{display:block;font:600 17px/1.15 'Barlow Condensed',sans-serif}#sun span{font-size:13px;color:var(--mute)}
+#sun .cring{fill:none;stroke:var(--line);stroke-width:2}#sun .cn{fill:var(--mute);font:600 13px Barlow;text-anchor:middle}
+#sun .csun{fill:var(--rush);stroke:var(--ink);stroke-width:1}#sun .csh{stroke:var(--shadow);stroke-width:4;stroke-linecap:round;opacity:.55}
+.zoom{right:12px;top:12px;display:grid}
+.zoom button{width:44px;height:44px;border:0;background:none;cursor:pointer;font:600 20px/1 Barlow,sans-serif}
+.zoom button+button{border-top:1px solid var(--line)}
+.legend{left:12px;bottom:12px;padding:8px 12px;display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;max-width:calc(100% - 24px)}
+.legend i{display:inline-block;width:20px;height:7px;border-radius:4px;margin-right:6px;vertical-align:middle}
+.hint{right:12px;bottom:12px;padding:6px 10px;font-size:13px;color:var(--mute)}
+#pop{position:absolute;z-index:3;padding:10px 12px 12px;width:250px}
+#pop b{display:block;font:600 18px/1.2 'Barlow Condensed',sans-serif}#pop span{font-size:13px;color:var(--mute);font-variant-numeric:tabular-nums}
+#pop div{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.btn{min-height:44px;padding:0 14px;border-radius:8px;border:1px solid var(--line);background:var(--card);cursor:pointer;font-weight:600}
+.btn.pri{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.panel{padding:20px clamp(16px,2vw,26px) 32px;display:grid;gap:24px}
+.sec h2{margin:0 0 10px;font:600 15px/1.2 Barlow,sans-serif;color:var(--mute)}
+select,input[type=date]{width:100%;min-height:44px;font-size:16px;padding:0 10px;border:1px solid var(--line);border-radius:8px;background:var(--card)}
+input[type=range]{width:100%;accent-color:var(--rush);height:32px;margin:0}
+.ft{display:grid;grid-template-columns:minmax(0,1fr) 44px;gap:8px}
+.ft label{display:grid;grid-template-columns:28px minmax(0,1fr);align-items:center;gap:8px;grid-column:1}
+#swap{grid-column:2;grid-row:1/3;align-self:center;width:44px;padding:0;font-size:20px}
+.dot{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font:700 15px/1 'Barlow Condensed',sans-serif}
+.dot.a{background:#151412;color:var(--gold);box-shadow:0 0 0 1px var(--gold)}.dot.b{background:var(--rush);color:#151412}
+.row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+.time{display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px;align-items:center;margin-top:10px}
+#tval{font:700 30px/1 'Barlow Condensed',sans-serif;min-width:4.4em;white-space:nowrap;font-variant-numeric:tabular-nums}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{min-height:44px;padding:0 14px;border-radius:22px;border:1px solid var(--line);background:var(--card);cursor:pointer;font-size:15px}
+.seg{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:10px;padding:3px;background:var(--card)}
+.seg button{min-height:42px;border:0;border-radius:7px;background:none;cursor:pointer;font-weight:600}
+.seg button[aria-pressed=true]{background:var(--ink);color:var(--bg)}
+.pref{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;margin-top:12px;font-size:14px;color:var(--mute)}
+.res{border-top:4px solid var(--rush);padding-top:14px}
+.big{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+#pct{font:700 clamp(52px,6vw,66px)/1 'Barlow Condensed',sans-serif;font-variant-numeric:tabular-nums}
+.big em{font-style:normal;font-size:17px;color:var(--mute)}
+#sub{margin:6px 0 12px}
+.strip{display:flex;height:14px;border-radius:7px;overflow:hidden;background:var(--line)}
+.strip i{display:block;height:100%}.strip .su{background:var(--rush)}.strip .sh{background:var(--ink)}
+.ends{display:flex;justify-content:space-between;font-size:13px;color:var(--mute);margin-top:4px}
+#cmp{margin:12px 0 0;font-size:15px;color:var(--mute)}
+.tip{margin-top:12px;width:100%;min-height:44px;border-radius:8px;border:1px solid var(--rush);background:color-mix(in srgb,var(--rush) 16%,var(--card));text-align:left;padding:8px 12px;cursor:pointer;font-size:15px}
+.fig{position:relative;min-height:170px}.fig>svg{position:absolute;inset:0;width:100%;height:100%;cursor:crosshair}
+#chart .cg{stroke:var(--line)}#chart .ct{fill:var(--mute);font:13px Barlow,sans-serif}
+#chart .lb{fill:none;stroke:var(--ink);stroke-width:2.5;stroke-linejoin:round}#chart .ls{fill:none;stroke:var(--steel);stroke-width:2;stroke-dasharray:4 4}
+#chart .nb{fill:var(--line);opacity:.75}#chart .cnow{stroke:var(--rush);stroke-width:2.5}
+.ckey{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--mute);margin-top:6px}
+.ckey i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:middle}
+.steps{list-style:none;margin:0;padding:0}
+.steps li{display:grid;grid-template-columns:minmax(0,1fr) auto 60px 40px;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:15px}
+.steps .d,.steps .p{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;color:var(--mute)}
+.bar{height:8px;border-radius:4px;background:var(--rush);overflow:hidden}.bar i{display:block;height:100%;background:var(--ink)}
+/* map layers */
+#gLawn rect{fill:var(--lawn)}
+#gRc line{stroke:var(--edge);stroke-linecap:round}#gRf line{stroke:var(--street);stroke-linecap:round}
+#gSh{opacity:.3}#gSh polygon{fill:var(--shadow)}#gSh line{stroke:var(--shadow);stroke-linecap:round}
+.bf{fill:var(--bld);stroke:var(--bldE);stroke-width:1;vector-effect:non-scaling-stroke}
+.field{fill:var(--lawn);stroke:var(--bldE);stroke-width:1;vector-effect:non-scaling-stroke}
+.dome{fill:light-dark(#d8cfbb,#5c574d)}
+.water{fill:var(--water);stroke:var(--bldE);stroke-width:1;vector-effect:non-scaling-stroke}
+#gTr circle{fill:var(--tree);opacity:.92}#gTh circle{fill:var(--treeHi);opacity:.75}
+.night{fill:#0b1530;opacity:.36;pointer-events:none}
+.rcase,.rshade,.rsun,.rshort{fill:none;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+.rcase{stroke:var(--card);stroke-width:11}.rshade{stroke:var(--ink);stroke-width:6}.rsun{stroke:var(--rush);stroke-width:6}
+.rshort{stroke:var(--steel);stroke-width:3.5;stroke-dasharray:1 7}
+.door{stroke:var(--ink);stroke-width:1.5;stroke-dasharray:3 3;vector-effect:non-scaling-stroke}
+.pin{cursor:pointer;outline:none}.pin circle{fill:var(--card);stroke:var(--ink);stroke-width:2;vector-effect:non-scaling-stroke}
+.pin text{font-family:'Barlow Condensed',sans-serif;font-weight:600;fill:var(--ink);paint-order:stroke;stroke:var(--ground);stroke-linejoin:round}
+.pin.pa circle{fill:#151412;stroke:var(--gold)}.pin.pb circle{fill:var(--rush);stroke:#151412}
+.pin text.ab{stroke:none;text-anchor:middle;fill:var(--gold)}.pin.pb text.ab{fill:#151412}
+.pin:focus-visible circle{stroke:var(--rush);stroke-width:4}
+.sl{font-family:Barlow,sans-serif;font-style:italic;fill:var(--mute);text-anchor:middle;pointer-events:none}
+/* about */
+.band{padding:clamp(28px,4vw,56px) max(5vw,16px)}
+.about{border-top:1px solid var(--line);max-width:1240px;margin:0 auto}
+.about summary{cursor:pointer;font:600 22px/1.3 'Barlow Condensed',sans-serif;min-height:44px;display:flex;align-items:center}
+.about p,.about li{max-width:72ch}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:12px 40px}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}th{color:var(--mute);font-weight:600}
+td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+textarea{width:100%;min-height:110px;font:14px/1.4 ui-monospace,Menlo,monospace;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--card)}
+.acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;align-items:center}
+#tmsg{font-size:14px;color:var(--mute)}
+@media(max-width:900px){.app{grid-template-columns:minmax(0,1fr)}.mapwrap{position:relative;height:min(64vh,calc(100vw + 150px));min-height:430px;border-right:0;border-bottom:1px solid var(--line)}}
+@media(max-width:600px){.hint{display:none}#sun{padding-right:10px}#sun span{display:none}.legend{gap:2px 10px}
+table{font-size:13px}.stack thead{display:none}.stack tr{display:grid;padding-block:10px}.stack td{display:flow-root;border:0;padding:3px 0;padding-inline-start:8em;text-align:start}.stack td::before{content:attr(data-l);float:inline-start;width:7.5em;margin-inline-start:-8em;white-space:normal;color:var(--mute)}.stack td:empty{display:none}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+</style>
+<script>new MutationObserver(()=>{for(const c of document.querySelectorAll('.stack td:not([data-l])')){let i=0,p=c;while(p=p.previousElementSibling)i+=p.colSpan;c.dataset.l=c.closest('table').rows[0].cells[i]?.textContent||''}}).observe(document,{childList:true,subtree:true})</script>
+</head>
+<body>
+<header class="top">
+  <h1>Purdue Shade Navigation</h1>
+  <p>Find the shadiest walk between West Lafayette campus buildings for any day and time.<small>Prototype: building pins use real GPS coordinates; trees, building heights and shade are simulated.</small></p>
+</header>
+
+<main class="app">
+  <div class="mapwrap" id="wrap">
+    <svg id="map" role="img" aria-label="Map of the central Purdue campus with simulated shadows and the selected walking route" preserveAspectRatio="xMidYMid meet">
+      <rect x="-5000" y="-5000" width="10000" height="10000" fill="var(--ground)"/>
+      <g id="gLawn"></g><g id="gRc"></g><g id="gRf"></g><g id="gSl"></g>
+      <g id="gSh"></g><g id="gBld"></g><g id="gTr"></g><g id="gTh"></g>
+      <rect id="night" class="night" x="-5000" y="-5000" width="10000" height="10000"/>
+      <g id="gShort"></g><g id="gBest"></g><g id="gPin"></g>
+    </svg>
+    <div class="ov" id="sun" aria-live="polite"></div>
+    <div class="ov zoom"><button id="zin" aria-label="Zoom in">+</button><button id="zout" aria-label="Zoom out">−</button><button id="zfit" aria-label="Fit route" title="Fit route">⤢</button></div>
+    <div class="ov legend"><span><i style="background:var(--ink)"></i>Shaded</span><span><i style="background:var(--rush)"></i>In sun</span><span><i style="background:repeating-linear-gradient(90deg,var(--steel) 0 3px,transparent 3px 7px)"></i>Shortest</span><span><i style="background:var(--shadow);opacity:.4"></i>Cast shadow</span></div>
+    <div class="ov hint">Drag to pan · pinch or Ctrl+scroll to zoom · tap a pin</div>
+    <div class="ov" id="pop" hidden></div>
+  </div>
+
+  <div class="panel">
+    <section class="sec">
+      <h2>Route</h2>
+      <div class="ft">
+        <label><span class="dot a">A</span><select id="from" aria-label="Start"></select></label>
+        <button id="swap" class="btn" aria-label="Swap start and destination">⇅</button>
+        <label><span class="dot b">B</span><select id="to" aria-label="Destination"></select></label>
+      </div>
+    </section>
+
+    <section class="sec">
+      <h2>When</h2>
+      <div class="row"><input type="date" id="date" aria-label="Date"><button id="play" class="btn">Play day</button></div>
+      <div class="time"><output id="tval" for="time"></output><input type="range" id="time" min="300" max="1320" step="5" aria-label="Time of day"></div>
+      <div class="chips"><button class="chip" data-p="now">Now</button><button class="chip" data-p="aug">Hot August afternoon</button><button class="chip" data-p="jun">June evening</button></div>
+    </section>
+
+    <section class="sec">
+      <h2>Preference</h2>
+      <div class="seg" role="group" aria-label="Mode"><button id="mShade" aria-pressed="true">Seek shade</button><button id="mSun" aria-pressed="false">Seek sun</button></div>
+      <div class="pref"><span>Shortest</span><input type="range" id="pref" min="0" max="100" step="5" aria-label="How much to favor shade over distance"><span id="prefR">Shadiest</span></div>
+    </section>
+
+    <section class="sec res" aria-live="polite">
+      <div class="big"><span id="pct">–</span><em id="pctl"></em></div>
+      <div id="sub"></div>
+      <div class="strip" id="strip" aria-hidden="true"></div>
+      <div class="ends"><span id="endA"></span><span id="endB"></span></div>
+      <p id="cmp"></p>
+      <button id="tip" class="tip" hidden></button>
+    </section>
+
+    <section class="sec">
+      <h2 id="chartT">Shade on this walk through the day</h2>
+      <div class="fig"><svg id="chart" role="img" aria-label="Share of the walk in shade by time of day"></svg></div>
+      <div class="ckey"><span><i style="background:var(--ink)"></i>Recommended route</span><span><i style="background:repeating-linear-gradient(90deg,var(--steel) 0 4px,transparent 4px 8px)"></i>Shortest route</span><span><i style="background:var(--line);height:10px"></i>Sun down</span></div>
+    </section>
+
+    <section class="sec">
+      <h2>Turn by turn · share of each stretch in shade</h2>
+      <ol class="steps" id="steps"></ol>
+    </section>
+  </div>
+</main>
+
+<section class="band about">
+  <details>
+    <summary>About the data and how shade is modeled</summary>
+    <div class="cols">
+      <div>
+        <p><b>Sun.</b> The sun's height and direction are calculated for West Lafayette from the date and time you choose (Eastern time, with daylight saving).</p>
+        <p><b>Shadows.</b> <span id="ntree"></span> simulated trees and 20 simplified building footprints each cast a shadow whose length and direction follow the sun. Tree positions, crown sizes, footprints and heights are invented for this prototype; the Bell Tower uses its real 160 ft height.</p>
+        <p><b>Paths.</b> <span id="ngraph"></span> approximate the main streets and malls. Every stretch is checked for shade every 5 m.</p>
+        <p><b>Routing.</b> Dijkstra's algorithm, where each sunlit meter costs up to 5 times a shaded one (set with the Shortest ↔ Shadiest slider). Seek sun flips the penalty for cold days.</p>
+        <p><b>Making it real.</b> Swap in a campus tree inventory, GIS building footprints with heights, and the actual sidewalk network. Paste tree data below to try it.</p>
+        <h3>Use your own trees</h3>
+        <textarea id="tj" spellcheck="false" placeholder='[{"lat":40.42610,"lng":-86.91500,"h":14,"r":5}]' aria-label="Tree data as JSON"></textarea>
+        <div class="acts"><button class="btn pri" id="tApply">Load trees</button><button class="btn" id="tCopy">Copy current trees</button><button class="btn" id="tReset">Reset to simulated</button><span id="tmsg"></span></div>
+      </div>
+      <div>
+        <table class="stack"><thead><tr><th>Code</th><th>Place</th><th>Latitude</th><th>Longitude</th><th>Pin source</th><th>Height used</th></tr></thead><tbody id="ptab"></tbody></table>
+      </div>
+    </div>
+  </details>
+</section>
+
+<script>
+{
+const $=s=>document.querySelector(s);
+const LAT=40.4290,LNG=-86.9175,KY=111040,KX=84860,R2=Math.PI/180,T0=300,T1=1320;
+const P=(la,lo)=>[(lo-LNG)*KX,-(la-LAT)*KY];
+
+/* ---------- campus walking network (approximate) ---------- */
+const NODES={a0:[40.4240,-86.9238],a1:[40.4249,-86.9238],a2:[40.4276,-86.9238],a3:[40.4298,-86.9238],a5:[40.4322,-86.9238],ed:[40.4249,-86.9250],
+b0:[40.4240,-86.9186],b1:[40.4249,-86.9186],b2:[40.4276,-86.9186],b3:[40.4298,-86.9186],cd:[40.4311,-86.9186],b5:[40.4322,-86.9186],
+crd:[40.4276,-86.9224],w2:[40.4276,-86.9200],wn:[40.4270,-86.9200],lb:[40.4240,-86.9178],
+u0:[40.4240,-86.9166],u1w:[40.4249,-86.9166],bd:[40.4255,-86.9166],u1:[40.4261,-86.9166],lw:[40.4277,-86.9166],u3:[40.4298,-86.9166],u5:[40.4322,-86.9166],
+m1:[40.4261,-86.9150],mb:[40.4240,-86.9150],m2:[40.4261,-86.9136],el:[40.4270,-86.9158],ew:[40.4285,-86.9158],hd:[40.4285,-86.9144],hv:[40.4287,-86.9136],bt:[40.4270,-86.9136],
+wd:[40.4267,-86.9126],sd:[40.4261,-86.9128],s1:[40.4261,-86.9120],pd:[40.4249,-86.9120],s0:[40.4240,-86.9120],kb:[40.4240,-86.9108],e0:[40.4240,-86.9093],e1:[40.4261,-86.9093],
+wle:[40.4274,-86.9110],ce:[40.4290,-86.9126],phd:[40.4296,-86.9131],pn:[40.4297,-86.9112],e3:[40.4290,-86.9099],pm:[40.4302,-86.9136],armd:[40.4304,-86.9145],arw:[40.4305,-86.9160],are:[40.4316,-86.9128],
+mk:[40.4322,-86.9161],sar:[40.4322,-86.9145],se:[40.4322,-86.9128],e5:[40.4322,-86.9114],rs:[40.4331,-86.9184]};
+const GROUPS=[
+['Mitch Daniels Blvd',.5,'st','a0-b0 b0-lb lb-u0 u0-mb mb-s0 s0-kb kb-e0'],
+['Martin Jischke Dr',.35,'st','a0-a1 a1-a2 a2-a3 a3-a5'],
+['First St',.55,'st','ed-a1 a1-b1 b1-u1w'],
+['Russell St',.6,'st','b0-b1 b1-b2 b2-b3 b3-cd cd-b5'],
+['University St',.5,'st','u0-u1w u1w-bd bd-u1 u1-lw lw-u3 u3-u5'],
+['Third St',.45,'st','a3-b3 b3-u3'],
+['Stadium Ave',.3,'st','a5-b5 b5-u5 u5-mk mk-sar sar-se se-e5'],
+['Grant St',.35,'st','e0-e1'],
+['Northwestern Ave',.3,'st','e1-e3 e3-e5'],
+['Residence walk',.65,'wk','a2-crd crd-w2 w2-b2'],
+['Windsor path',.7,'wk','wn-w2'],
+['Memorial Mall',.92,'wk','u1-m1 m1-m2'],
+['Memorial Mall Dr',.7,'wk','mb-m1'],
+['Elliott walk',.6,'wk','m1-el lw-el el-ew'],
+['Bell Tower plaza',.3,'wk','el-bt'],
+['Centennial walk',.45,'wk','m2-sd sd-s1 m2-bt'],
+['WALC plaza',.2,'wk','s1-wd wd-bt'],
+['Union walk',.4,'wk','s0-pd pd-s1'],
+['Union north walk',.45,'wk','s1-e1'],
+['Hovde walk',.3,'wk','ew-hd hd-hv'],
+['Purdue Mall',.1,'wk','bt-hv hv-pm'],
+['Purdue Mall west',.35,'wk','u3-ew ew-arw hd-armd'],
+['Armstrong walk',.3,'wk','pm-armd armd-arw arw-u3 arw-u5'],
+['Purdue Mall east',.25,'wk','pm-are are-se'],
+['Engineering walk',.3,'wk','ce-hv ce-phd phd-pm'],
+['EE walk',.35,'wk','wle-ce ce-pn pn-e3'],
+['WALC east walk',.4,'wk','s1-wle e1-wle wle-e3'],
+['Stadium walk',.2,'wk','b5-rs u5-rs']];
+const NP={};for(const k in NODES)NP[k]=P(NODES[k][0],NODES[k][1]);
+const EDGES=[];
+for(const [name,can,kind,list] of GROUPS)for(const pr of list.split(' ')){
+  const [a,b]=pr.split('-'),[ax,ay]=NP[a],[bx,by]=NP[b],len=Math.hypot(bx-ax,by-ay),n=Math.max(2,Math.ceil(len/5)),samples=[];
+  for(let i=0;i<n;i++){const t=(i+.5)/n;samples.push([ax+(bx-ax)*t,ay+(by-ay)*t]);}
+  EDGES.push({i:EDGES.length,a,b,name,can,kind,len,ax,ay,bx,by,n,samples});}
+const ADJ={};for(const k in NODES)ADJ[k]=[];for(const e of EDGES){ADJ[e.a].push([e.b,e,1]);ADJ[e.b].push([e.a,e,0]);}
+
+/* ---------- places: pin = real GPS point; footprint + height simplified ---------- */
+const BRAW=[
+['PMU','Purdue Memorial Union',40.4248,-86.9110,'pd',1,[40.42425,40.42545,-86.9116,-86.9105],22,'r'],
+['STEW','Stewart Center',40.4250,-86.91285,'sd',0,[40.42445,40.4256,-86.9134,-86.9123],15,'l'],
+['KRAN','Krannert Building',40.42338,-86.9108,'kb',0,[40.42305,40.4237,-86.91135,-86.91025],34,'b'],
+['LILY','Lilly Hall of Life Sciences',40.42333,-86.9180,'lb',0,[40.4229,40.42375,-86.9190,-86.9170],18,'b'],
+['BRNG','Beering Hall',40.42546,-86.91605,'bd',1,[40.4251,40.42585,-86.9164,-86.9156],32,'r'],
+['LWSN','Lawson Computer Science Building',40.4277,-86.91745,'lw',0,[40.42735,40.42805,-86.9180,-86.9169],18,'l'],
+['ELLT','Elliott Hall of Music',40.4279,-86.9149,'ew',1,[40.4274,40.42805,-86.91545,-86.91435],27,'l'],
+['HOVD','Hovde Hall',40.42821,-86.91440,'hd',1,[40.42808,40.42838,-86.9149,-86.9139],20,'r'],
+['BELL','Purdue Bell Tower',40.4272,-86.9140,'bt',1,[40.427169,40.427231,-86.914041,-86.913959],49,'b'],
+['FNTN','Engineering Fountain',40.42864,-86.91378,'hv',1,null,0,'r'],
+['WALC','Wilmeth Active Learning Center',40.4274,-86.91265,'wd',0,[40.4270,40.4278,-86.91315,-86.91215],21,'r'],
+['EE','Electrical Engineering Building',40.4289,-86.91135,'pn',0,[40.4286,40.4292,-86.9118,-86.9109],18,'r'],
+['PHYS','Physics Building',40.4301,-86.91235,'phd',0,[40.42975,40.43045,-86.9128,-86.9119],20,'r'],
+['ARMS','Neil Armstrong Hall of Engineering',40.43106,-86.91445,'armd',1,[40.43065,40.4313,-86.9151,-86.9138],22,'l'],
+['MACK','Mackey Arena',40.43332,-86.91614,'mk',1,{r:55},28,'r'],
+['ROSS','Ross–Ade Stadium',40.43444,-86.91833,'rs',1,[40.4335,40.43545,-86.9196,-86.9171],26,'t'],
+['CARY','Cary Quadrangle',40.4311,-86.9200,'cd',0,[40.4305,40.4317,-86.9211,-86.9189],17,'l'],
+['WDCT','Wiley Dining Court',40.4283,-86.9199,'w2',0,[40.4280,40.4286,-86.92035,-86.91945],7,'r'],
+['WIND','Windsor Halls',40.4262,-86.9201,'wn',0,[40.4257,40.4267,-86.92075,-86.91945],14,'r'],
+['CREC','Córdova Recreational Sports Center (CoRec)',40.4286,-86.9224,'crd',0,[40.42795,40.42925,-86.92345,-86.92135],16,'l'],
+['ERHT','Earhart Hall',40.42583,-86.92496,'ed',1,[40.4254,40.42625,-86.9255,-86.9244],26,'t']];
+const BLD=BRAW.map(([code,name,lat,lng,door,pub,shape,h,side])=>{
+  const [x,y]=P(lat,lng);let poly=null;
+  if(Array.isArray(shape)){const [s,n,w,e]=shape;poly=[P(s,w),P(s,e),P(n,e),P(n,w)];}
+  else if(shape){poly=[];for(let i=0;i<20;i++){const a=i/20*2*Math.PI;poly.push([x+shape.r*Math.cos(a),y+shape.r*Math.sin(a)]);}}
+  return{code,name,lat,lng,door,pub,poly,h,side,x,y,bb:poly?bbox(poly):[x-12,y-12,x+12,y+12]};});
+const LAWN=[[40.4262,40.4268,-86.9163,-86.9139,.45],[40.4243,40.4259,-86.9148,-86.9137,.55],[40.4289,40.4303,-86.9157,-86.9140,.06],[40.4268,40.4274,-86.9234,-86.9190,.35],[40.4300,40.4318,-86.9234,-86.9214,0]];
+const SLAB=[['u0','mb','Mitch Daniels Blvd'],['lw','u3','University St'],['b2','b3','Russell St'],['a1','a2','Martin Jischke Dr'],['u5','mk','Stadium Ave'],['a3','b3','Third St'],['a1','b1','First St'],['e1','e3','Northwestern Ave'],['u1','m1','Memorial Mall'],['hv','pm','Purdue Mall']];
+
+/* ---------- geometry ---------- */
+function bbox(p){let a=1e9,b=1e9,c=-1e9,d=-1e9;for(const [x,y] of p){if(x<a)a=x;if(y<b)b=y;if(x>c)c=x;if(y>d)d=y;}return[a,b,c,d];}
+function sd2(px,py,x1,y1,x2,y2){const dx=x2-x1,dy=y2-y1,l=dx*dx+dy*dy;let t=l?((px-x1)*dx+(py-y1)*dy)/l:0;t=t<0?0:t>1?1:t;const qx=x1+t*dx-px,qy=y1+t*dy-py;return qx*qx+qy*qy;}
+function hull(pts){pts=pts.slice().sort((a,b)=>a[0]-b[0]||a[1]-b[1]);const cr=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]);const lo=[],up=[];
+  for(const p of pts){while(lo.length>1&&cr(lo[lo.length-2],lo[lo.length-1],p)<=0)lo.pop();lo.push(p);}
+  for(let i=pts.length-1;i>=0;i--){const p=pts[i];while(up.length>1&&cr(up[up.length-2],up[up.length-1],p)<=0)up.pop();up.push(p);}
+  up.pop();lo.pop();return lo.concat(up);}
+function inConvex(poly,x,y){let pos=0,neg=0;for(let i=0;i<poly.length;i++){const [ax,ay]=poly[i],[bx,by]=poly[(i+1)%poly.length];const c=(bx-ax)*(y-ay)-(by-ay)*(x-ax);if(c>0)pos=1;else if(c<0)neg=1;if(pos&&neg)return false;}return true;}
+function minEdgeDist(x,y){let m=1e9;for(const e of EDGES){const d=sd2(x,y,e.ax,e.ay,e.bx,e.by);if(d<m)m=d;}return Math.sqrt(m);}
+function inBld(x,y,pad){for(const b of BLD){const q=b.bb;if(x>q[0]-pad&&x<q[2]+pad&&y>q[1]-pad&&y<q[3]+pad)return true;}return false;}
+
+/* ---------- simulated trees ---------- */
+let seed=0;const rnd=()=>{seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};
+function genTrees(){seed=20260826;const T=[];
+  const add=(x,y)=>{if(inBld(x,y,3)||minEdgeDist(x,y)<2.5)return;for(const t of T)if((t.x-x)**2+(t.y-y)**2<30)return;T.push({x,y,h:+(9+rnd()*9).toFixed(1),r:+(4+rnd()*3.5).toFixed(1)});};
+  for(const e of EDGES){const dx=(e.bx-e.ax)/e.len,dy=(e.by-e.ay)/e.len,k=Math.floor(e.len/10),o0=e.kind==='st'?4.5:2.8;
+    for(let i=1;i<k;i++)for(const sd of[-1,1]){if(rnd()>e.can)continue;const t=(i+(rnd()-.5)*.5)/k*e.len,off=sd*(o0+rnd()*3);add(e.ax+dx*t-dy*off,e.ay+dy*t+dx*off);}}
+  for(const [s,n,w,ee,d] of LAWN){const [x0,y0]=P(n,w),[x1,y1]=P(s,ee);for(let x=x0+8;x<x1;x+=16)for(let y=y0+8;y<y1;y+=16)if(rnd()<d)add(x+(rnd()-.5)*10,y+(rnd()-.5)*10);}
+  return T;}
+let TREES=genTrees();
+
+/* ---------- sun ---------- */
+function sunPos(ms){const d=ms/864e5-10957.5,g=(357.529+.98560028*d)*R2,q=280.459+.98564736*d,L=(q+1.915*Math.sin(g)+.02*Math.sin(2*g))*R2,e=(23.439-3.6e-7*d)*R2;
+  const ra=Math.atan2(Math.cos(e)*Math.sin(L),Math.cos(L)),dec=Math.asin(Math.sin(e)*Math.sin(L)),gmst=((18.697374558+24.06570982441908*d)%24+24)%24;
+  const H=(gmst*15+LNG)*R2-ra,la=LAT*R2;
+  const alt=Math.asin(Math.sin(la)*Math.sin(dec)+Math.cos(la)*Math.cos(dec)*Math.cos(H));
+  const az=Math.atan2(-Math.sin(H)*Math.cos(dec),Math.sin(dec)*Math.cos(la)-Math.cos(dec)*Math.sin(la)*Math.cos(H));
+  return{alt:alt/R2,az:(az/R2+360)%360};}
+function nthSun(y,m,n){const dw=new Date(Date.UTC(y,m,1)).getUTCDay();return 1+(7-dw)%7+7*(n-1);}
+function utcMs(ds,mins){const [y,mo,da]=ds.split('-').map(Number);const d0=Date.UTC(y,2,nthSun(y,2,2),7),d1=Date.UTC(y,10,nthSun(y,10,1),6);let t=Date.UTC(y,mo-1,da,0,mins)+5*36e5;if(t>=d0&&t<d1)t-=36e5;return t;}
+
+/* ---------- shade ---------- */
+function shadowsAt(ms){const s=sunPos(ms),o={alt:s.alt,az:s.az,b:[],t:[],night:s.alt<=.5};if(o.night)return o;
+  const ar=s.alt*R2,zr=s.az*R2,ux=-Math.sin(zr),uy=Math.cos(zr),cot=1/Math.tan(ar),sa=Math.sin(ar);Object.assign(o,{ux,uy,cot});
+  for(const b of BLD){if(!b.h||!b.poly)continue;const L=Math.min(b.h*cot,420),hh=hull(b.poly.concat(b.poly.map(([x,y])=>[x+ux*L,y+uy*L])));o.b.push({p:hh,bb:bbox(hh)});}
+  for(const t of TREES){const c=Math.min((t.h-t.r)*cot,160),hf=Math.min(t.r/sa-t.r,70),x1=t.x+ux*(c-hf),y1=t.y+uy*(c-hf),x2=t.x+ux*(c+hf),y2=t.y+uy*(c+hf),r=t.r;
+    o.t.push({x1,y1,x2,y2,r,r2:r*r,mx:Math.min(x1,x2)-r,Mx:Math.max(x1,x2)+r,my:Math.min(y1,y2)-r,My:Math.max(y1,y2)+r});}
+  return o;}
+function shadeAll(o){return EDGES.map(e=>{const bits=new Uint8Array(e.n);let c=0;
+  for(let i=0;i<e.n;i++){const [x,y]=e.samples[i];let s=o.night?1:0;
+    if(!s)for(const h of o.b){const q=h.bb;if(x<q[0]||x>q[2]||y<q[1]||y>q[3])continue;if(inConvex(h.p,x,y)){s=1;break;}}
+    if(!s)for(const t of o.t){if(x<t.mx||x>t.Mx||y<t.my||y>t.My)continue;if(sd2(x,y,t.x1,t.y1,t.x2,t.y2)<=t.r2){s=1;break;}}
+    bits[i]=s;c+=s;}
+  return{bits,f:c/e.n};});}
+
+/* ---------- routing ---------- */
+function dijkstra(from,to,w){const dist={},prev={},done=new Set();for(const k in NODES)dist[k]=Infinity;dist[from]=0;
+  for(;;){let u=null,b=Infinity;for(const k in dist)if(!done.has(k)&&dist[k]<b){b=dist[k];u=k;}if(u===null||u===to)break;done.add(u);
+    for(const [v,e,fw] of ADJ[u]){const nd=dist[u]+w(e);if(nd<dist[v]){dist[v]=nd;prev[v]=[u,e,fw];}}}
+  if(dist[to]===Infinity)return null;const path=[];let c=to;while(c!==from){const [u,e,fw]=prev[c];path.unshift([e,fw]);c=u;}return path;}
+const wPref=(sh,mode,pref)=>{const k=pref/100*4;return e=>{const f=sh[e.i].f,good=mode==='sun'?1-f:f;return e.len*(good+(1-good)*(1+k));};};
+function stats(path,sh){let L=0,S=0;const steps=[];for(const [e] of path){const s=e.len*sh[e.i].f;L+=e.len;S+=s;const l=steps[steps.length-1];if(l&&l.name===e.name){l.len+=e.len;l.sh+=s;}else steps.push({name:e.name,len:e.len,sh:s});}return{L,S,steps};}
+function runs(path,sh){const out=[];let cur=null;
+  for(const [e,fw] of path){const bits=sh[e.i].bits,n=e.n;
+    for(let j=0;j<n;j++){const i=fw?j:n-1-j,t0=fw?i/n:(i+1)/n,t1=fw?(i+1)/n:i/n,s=bits[i];
+      const p0=[e.ax+(e.bx-e.ax)*t0,e.ay+(e.by-e.ay)*t0],p1=[e.ax+(e.bx-e.ax)*t1,e.ay+(e.by-e.ay)*t1];
+      if(!cur||cur.s!==s){if(cur)out.push(cur);cur={s,pts:[p0],len:0};}cur.pts.push(p1);cur.len+=e.len/n;}}
+  if(cur)out.push(cur);return out;}
+const nodePts=(path,start)=>{const p=[NP[start]];for(const [e,fw] of path)p.push(NP[fw?e.b:e.a]);return p;};
+const samePath=(a,b)=>a.length===b.length&&a.every((x,i)=>x[0]===b[i][0]);
+
+/* ---------- state ---------- */
+const st={from:'ERHT',to:'ARMS',date:'2026-08-26',min:870,mode:'shade',pref:60};
+try{const s=JSON.parse(localStorage.getItem('psn-v1')||'null');if(s&&BLD.some(b=>b.code===s.from)&&BLD.some(b=>b.code===s.to)){st.from=s.from;st.to=s.to;st.mode=s.mode==='sun'?'sun':'shade';st.pref=Math.min(100,Math.max(0,+s.pref||0));}}catch(e){}
+function save(){try{localStorage.setItem('psn-v1',JSON.stringify({from:st.from,to:st.to,mode:st.mode,pref:st.pref}));}catch(e){}}
+let SH=null,SHB=null,cur=null,CH=null,chJob=0,V=null,lastW=0,playT=null,downAt=null,moved=false;
+const svg=$('#map'),wrap=$('#wrap'),pop=$('#pop');
+const bld=c=>BLD.find(b=>b.code===c);
+const pl=pts=>pts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');
+const fmt=m=>{m=Math.round(m);let h=Math.floor(m/60)%24;const mm=m%60,ap=h<12?'AM':'PM';h=h%12||12;return h+':'+String(mm).padStart(2,'0')+' '+ap;};
+const hourLbl=m=>{let h=Math.floor(m/60);const ap=h<12?' am':' pm';h=h%12||12;return h+ap;};
+const dist=L=>L<1000?Math.round(L/5)*5+' m':(L/1000).toFixed(2)+' km';
+const metric=x=>x.L?(st.mode==='sun'?x.L-x.S:x.S)/x.L*100:0;
+const dirName=az=>['north','northeast','east','southeast','south','southwest','west','northwest'][Math.round(az/45)%8];
+
+/* ---------- drawing ---------- */
+function renderStatic(){
+  $('#gLawn').innerHTML=LAWN.map(([s,n,w,e])=>{const [x0,y0]=P(n,w),[x1,y1]=P(s,e);return `<rect x="${x0.toFixed(1)}" y="${y0.toFixed(1)}" width="${(x1-x0).toFixed(1)}" height="${(y1-y0).toFixed(1)}" rx="6"/>`;}).join('');
+  let cs='',fl='';for(const e of EDGES){const s=e.kind==='st',l=`x1="${e.ax.toFixed(1)}" y1="${e.ay.toFixed(1)}" x2="${e.bx.toFixed(1)}" y2="${e.by.toFixed(1)}"`;cs+=`<line ${l} stroke-width="${s?13:6.5}"/>`;fl+=`<line ${l} stroke-width="${s?10:4}"/>`;}
+  $('#gRc').innerHTML=cs;$('#gRf').innerHTML=fl;
+  let bs='';for(const b of BLD){
+    if(!b.poly){bs+=`<circle class="water" cx="${b.x.toFixed(1)}" cy="${b.y.toFixed(1)}" r="9"/>`;continue;}
+    bs+=`<polygon class="bf" points="${pl(b.poly)}"/>`;
+    if(b.code==='ROSS'){const q=b.bb;bs+=`<rect class="field" x="${(q[0]+30).toFixed(1)}" y="${(q[1]+40).toFixed(1)}" width="${(q[2]-q[0]-60).toFixed(1)}" height="${(q[3]-q[1]-80).toFixed(1)}" rx="18"/>`;}
+    if(b.code==='MACK')bs+=`<circle class="dome" cx="${b.x.toFixed(1)}" cy="${b.y.toFixed(1)}" r="38"/>`;}
+  $('#gBld').innerHTML=bs;
+  $('#gSl').innerHTML=SLAB.map(([a,b,t])=>{const [ax,ay]=NP[a],[bx,by]=NP[b];let ang=Math.atan2(by-ay,bx-ax)/R2;if(ang>90)ang-=180;if(ang<-90)ang+=180;const mx=(ax+bx)/2,my=(ay+by)/2;return `<text class="sl" font-size="9" transform="translate(${mx.toFixed(1)} ${my.toFixed(1)}) rotate(${ang.toFixed(1)})" dy="-8">${t}</text>`;}).join('');}
+function renderShadows(){if(SH.night){$('#gSh').innerHTML='';return;}let s='';
+  for(const h of SH.b)s+=`<polygon points="${pl(h.p)}"/>`;
+  for(const t of SH.t)s+=`<line x1="${t.x1.toFixed(1)}" y1="${t.y1.toFixed(1)}" x2="${t.x2.toFixed(1)}" y2="${t.y2.toFixed(1)}" stroke-width="${(2*t.r).toFixed(1)}"/>`;
+  $('#gSh').innerHTML=s;}
+function renderTrees(){const ok=SH&&!SH.night,hx=ok?-SH.ux:0,hy=ok?-SH.uy:0;let s='',h='';
+  for(const t of TREES){s+=`<circle cx="${t.x.toFixed(1)}" cy="${t.y.toFixed(1)}" r="${t.r}"/>`;if(ok)h+=`<circle cx="${(t.x+hx*t.r*.35).toFixed(1)}" cy="${(t.y+hy*t.r*.35).toFixed(1)}" r="${(t.r*.55).toFixed(1)}"/>`;}
+  $('#gTr').innerHTML=s;$('#gTh').innerHTML=h;}
+function ppm(){const r=svg.getBoundingClientRect();return Math.min(r.width/V.w,r.height/V.h)||.5;}
+const MINOR=new Set(['FNTN','HOVD','BELL','WDCT','STEW','EE','LWSN']);
+function renderPins(){const k=ppm(),r=6.5/k,fs=13/k;let s='';
+  for(const id of['from','to']){const b=bld(st[id]);if(st.from===st.to)break;const [dx,dy]=NP[b.door];s+=`<line class="door" x1="${b.x.toFixed(1)}" y1="${b.y.toFixed(1)}" x2="${dx.toFixed(1)}" y2="${dy.toFixed(1)}"/>`;}
+  const order=[...BLD].sort((a,b)=>(a.code===st.from||a.code===st.to)-(b.code===st.from||b.code===st.to));
+  for(const b of order){const A=b.code===st.from,B=b.code===st.to&&!A,rr=A||B?r*1.55:r;
+    const off=rr+4/k,lx=b.side==='l'?b.x-off:b.side==='r'?b.x+off:b.x,ly=b.side==='t'?b.y-off-2/k:b.side==='b'?b.y+off+fs*.8:b.y+fs*.35,anc=b.side==='l'?'end':b.side==='r'?'start':'middle';
+    s+=`<g class="pin${A?' pa':''}${B?' pb':''}" data-c="${b.code}" tabindex="0" role="button" aria-label="${b.name}"><circle cx="${b.x.toFixed(1)}" cy="${b.y.toFixed(1)}" r="${rr.toFixed(2)}"/>`+
+      (A||B?`<text class="ab" x="${b.x.toFixed(1)}" y="${(b.y+fs*.36).toFixed(1)}" font-size="${(fs*1.05).toFixed(2)}">${A?'A':'B'}</text>`:'')+
+      (A||B||k>=.3||!MINOR.has(b.code)?`<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" font-size="${fs.toFixed(2)}" stroke-width="${(3/k).toFixed(2)}" text-anchor="${anc}">${b.code}</text>`:'')+'</g>';}
+  $('#gPin').innerHTML=s;$('#gSl').style.display=k>1.1?'':'none';}
+function renderSun(){const el=$('#sun');
+  if(SH.night){el.innerHTML=`<svg viewBox="0 0 60 60" width="52" height="52" aria-hidden="true"><circle class="cring" cx="30" cy="30" r="22"/><text class="cn" x="30" y="12">N</text><circle cx="30" cy="34" r="7" fill="var(--steel)"/></svg><div><b>Sun is down</b><span>Every path is in shade</span></div>`;return;}
+  const a=SH.az*R2,x=30+20*Math.sin(a),y=30-20*Math.cos(a),ratio=SH.cot>9.9?'over 10':SH.cot.toFixed(1);
+  el.innerHTML=`<svg viewBox="0 0 60 60" width="52" height="52" aria-hidden="true"><circle class="cring" cx="30" cy="30" r="22"/><text class="cn" x="30" y="12">N</text><line class="csh" x1="30" y1="30" x2="${(30-(x-30)*.8).toFixed(1)}" y2="${(30-(y-30)*.8).toFixed(1)}"/><circle class="csun" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="5.5"/></svg><div><b>Sun ${Math.round(SH.alt)}° up in the ${dirName(SH.az)}</b><span>Shadows ${ratio}× an object's height</span></div>`;}
+
+/* ---------- update cycle ---------- */
+function compute(){SH=shadowsAt(utcMs(st.date,st.min));SHB=shadeAll(SH);}
+function doRoute(){
+  if(st.from===st.to){cur=null;$('#gBest').innerHTML='';$('#gShort').innerHTML='';renderResult();renderPins();return;}
+  const A=bld(st.from),B=bld(st.to),ps=dijkstra(A.door,B.door,e=>e.len),pb=dijkstra(A.door,B.door,wPref(SHB,st.mode,st.pref));
+  const s1=stats(ps,SHB),s2=stats(pb,SHB),rb=runs(pb,SHB);cur={ps,pb,s1,s2,rb};
+  $('#gShort').innerHTML=samePath(ps,pb)?'':`<polyline class="rshort" points="${pl(nodePts(ps,A.door))}"/>`;
+  $('#gBest').innerHTML=`<polyline class="rcase" points="${pl(nodePts(pb,A.door))}"/>`+rb.map(r=>`<polyline class="${r.s?'rshade':'rsun'}" points="${pl(r.pts)}"/>`).join('');
+  renderResult();renderPins();}
+function renderResult(){
+  if(!cur){$('#pct').textContent='–';$('#pctl').textContent='Pick two different places';for(const id of['#sub','#strip','#cmp','#steps','#endA','#endB'])$(id).innerHTML='';$('#tip').hidden=true;return;}
+  const {ps,pb,s1,s2,rb}=cur,sun=st.mode==='sun',sunMin=(s2.L-s2.S)/80,mi=(s2.L/1609.34).toFixed(2);
+  $('#pct').textContent=Math.round(metric(s2))+'%';
+  $('#pctl').textContent=sun?'of the walk in sunshine':'of the walk in shade';
+  $('#sub').innerHTML=`${dist(s2.L)} (${mi} mi) · ${Math.max(1,Math.round(s2.L/80))} min walk · `+(SH.night?'the sun is down':`<b>${sunMin>0&&sunMin<1?'under 1':Math.round(sunMin)} min</b> in direct sun`);
+  $('#strip').innerHTML=rb.map(r=>`<i class="${r.s?'sh':'su'}" style="width:${(r.len/s2.L*100).toFixed(2)}%"></i>`).join('');
+  $('#endA').textContent='A · '+bld(st.from).code;$('#endB').textContent=bld(st.to).code+' · B';
+  const extra=(s2.L-s1.L)/80;
+  $('#cmp').textContent=samePath(ps,pb)?`This is also the shortest route.`:`Shortest route: ${dist(s1.L)}, ${Math.round(metric(s1))}% ${sun?'sun':'shade'}. The ${sun?'sunny':'shady'} way ${extra<.08?'adds almost no time':'adds '+(extra<1?Math.round(extra*60)+' s':extra.toFixed(1)+' min')}.`;
+  $('#steps').innerHTML=s2.steps.map(s=>{const p=Math.round(s.sh/s.len*100);return `<li><span>${s.name}</span><span class="d">${dist(s.len)}</span><span class="bar" aria-hidden="true"><i style="width:${p}%"></i></span><span class="p">${p}%</span></li>`;}).join('');}
+function update(full){compute();renderShadows();renderTrees();doRoute();renderSun();$('#night').style.display=SH.night?'':'none';if(full)scheduleChart();else{drawChart();suggest();}save();}
+
+/* ---------- day chart ---------- */
+function scheduleChart(){const job=++chJob;CH=null;drawChart();$('#tip').hidden=true;if(st.from===st.to)return;
+  const A=bld(st.from),B=bld(st.to),ps=dijkstra(A.door,B.door,e=>e.len),slots=[],data=[];let i=0;for(let m=T0;m<=T1;m+=30)slots.push(m);
+  const step=()=>{if(job!==chJob)return;const t0=performance.now();
+    while(i<slots.length&&performance.now()-t0<14){const m=slots[i++],o=shadowsAt(utcMs(st.date,m));if(o.night){data.push({m,night:1});continue;}
+      const sh=shadeAll(o),pb=dijkstra(A.door,B.door,wPref(sh,st.mode,st.pref));data.push({m,best:metric(stats(pb,sh)),short:metric(stats(ps,sh))});}
+    if(i<slots.length)setTimeout(step,0);else{CH=data;drawChart();suggest();}};
+  setTimeout(step,40);}
+function drawChart(){const s=$('#chart'),W=s.clientWidth,H=s.clientHeight;if(!W||!H)return;
+  const L=38,R=12,Tp=10,Bt=26,X=m=>L+(m-T0)/(T1-T0)*(W-L-R),Y=v=>Tp+(1-v/100)*(H-Tp-Bt);let g='';
+  for(const v of[0,50,100])g+=`<line class="cg" x1="${L}" x2="${W-R}" y1="${Y(v)}" y2="${Y(v)}"/><text class="ct" x="${L-6}" y="${Y(v)+4}" text-anchor="end">${v}%</text>`;
+  const stp=W<420?240:120;for(let m=360;m<T1;m+=stp)g+=`<text class="ct" x="${X(m).toFixed(1)}" y="${H-6}" text-anchor="middle">${hourLbl(m)}</text>`;
+  if(CH){for(const d of CH)if(d.night){const a=Math.max(T0,d.m-15),b=Math.min(T1,d.m+15);g+=`<rect class="nb" x="${X(a).toFixed(1)}" y="${Tp}" width="${(X(b)-X(a)).toFixed(1)}" height="${H-Tp-Bt}"/>`;}
+    const line=(k,c)=>{let p='',pen=false;for(const d of CH){if(d.night){pen=false;continue;}p+=(pen?'L':'M')+X(d.m).toFixed(1)+' '+Y(d[k]).toFixed(1);pen=true;}return p?`<path class="${c}" d="${p}"/>`:'';};
+    g+=line('short','ls')+line('best','lb');}
+  else g+=`<text class="ct" x="${((W+L)/2).toFixed(1)}" y="${(H/2).toFixed(1)}" text-anchor="middle">${st.from===st.to?'Pick two different places':'Working through the day…'}</text>`;
+  g+=`<line class="cnow" x1="${X(st.min).toFixed(1)}" x2="${X(st.min).toFixed(1)}" y1="${Tp}" y2="${H-Bt}"/>`;s.innerHTML=g;}
+function suggest(){const el=$('#tip');el.hidden=true;if(!CH||!cur)return;const now=metric(cur.s2);let best=null;
+  for(const d of CH){if(d.night||Math.abs(d.m-st.min)>120||Math.abs(d.m-st.min)<15)continue;if(!best||d.best>best.best)best=d;}
+  if(best&&best.best-now>=8){el.hidden=false;el.dataset.m=best.m;el.innerHTML=`Leave at <b>${fmt(best.m)}</b> instead for ${Math.round(best.best)}% ${st.mode==='sun'?'sun':'shade'} on this walk →`;}}
+
+/* ---------- view ---------- */
+function setVB(){svg.setAttribute('viewBox',`${V.x.toFixed(1)} ${V.y.toFixed(1)} ${V.w.toFixed(1)} ${V.h.toFixed(1)}`);if(V.w!==lastW){lastW=V.w;renderPins();}}
+function fitTo(q,px){const r=svg.getBoundingClientRect(),rw=r.width||800,rh=r.height||600,w=Math.max(q[2]-q[0],120),h=Math.max(q[3]-q[1],120),s=Math.min(Math.max(rw-2*px,80)/w,Math.max(rh-2*px,80)/h),W=rw/s,H=rh/s;
+  V={x:(q[0]+q[2])/2-W/2,y:(q[1]+q[3])/2-H/2,w:W,h:H};setVB();}
+function campusBox(){return bbox(Object.values(NP).concat(...BLD.filter(b=>b.poly).map(b=>b.poly)));}
+function world(cx,cy){const m=svg.getScreenCTM();if(!m)return{x:V.x+V.w/2,y:V.y+V.h/2};const p=new DOMPoint(cx,cy).matrixTransform(m.inverse());return{x:p.x,y:p.y};}
+function zoomAt(cx,cy,f){const p=world(cx,cy),nw=Math.min(Math.max(V.w*f,160),3000);f=nw/V.w;V={x:p.x-(p.x-V.x)*f,y:p.y-(p.y-V.y)*f,w:V.w*f,h:V.h*f};setVB();}
+const ptrs=new Map();
+svg.addEventListener('pointerdown',e=>{svg.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});if(ptrs.size===1){moved=false;downAt={x:e.clientX,y:e.clientY,t:e.target};}});
+svg.addEventListener('pointermove',e=>{const prev=ptrs.get(e.pointerId);if(!prev)return;const now={x:e.clientX,y:e.clientY};
+  if(ptrs.size===1){if(Math.abs(now.x-downAt.x)+Math.abs(now.y-downAt.y)>5)moved=true;if(moved){const k=ppm();V.x-=(now.x-prev.x)/k;V.y-=(now.y-prev.y)/k;setVB();svg.classList.add('drag');}}
+  else if(ptrs.size===2){let other=null;for(const [id,p] of ptrs)if(id!==e.pointerId)other=p;const d0=Math.hypot(prev.x-other.x,prev.y-other.y),d1=Math.hypot(now.x-other.x,now.y-other.y);if(d0>0&&d1>0)zoomAt((now.x+other.x)/2,(now.y+other.y)/2,d0/d1);moved=true;}
+  ptrs.set(e.pointerId,now);});
+svg.addEventListener('pointerup',e=>{ptrs.delete(e.pointerId);svg.classList.remove('drag');if(!moved&&ptrs.size===0&&downAt){const g=downAt.t.closest&&downAt.t.closest('.pin');if(g)openPop(g.dataset.c,e.clientX,e.clientY);else closePop();}});
+svg.addEventListener('pointercancel',e=>{ptrs.delete(e.pointerId);svg.classList.remove('drag');});
+svg.addEventListener('wheel',e=>{if(!(e.ctrlKey||e.metaKey))return;e.preventDefault();zoomAt(e.clientX,e.clientY,Math.exp(Math.max(-100,Math.min(100,e.deltaY))*.006));},{passive:false});
+svg.addEventListener('keydown',e=>{const g=e.target.closest&&e.target.closest('.pin');if(g&&(e.key==='Enter'||e.key===' ')){e.preventDefault();const r=g.getBoundingClientRect();openPop(g.dataset.c,r.left+r.width/2,r.top+r.height/2);}});
+const mid=()=>{const r=svg.getBoundingClientRect();return[r.left+r.width/2,r.top+r.height/2];};
+$('#zin').onclick=()=>zoomAt(...mid(),.7);$('#zout').onclick=()=>zoomAt(...mid(),1.4);
+$('#zfit').onclick=()=>{if(cur){const A=bld(st.from),B=bld(st.to);fitTo(bbox(nodePts(cur.pb,A.door).concat(nodePts(cur.ps,A.door),[[A.x,A.y],[B.x,B.y]])),70);}else fitTo(campusBox(),44);};
+function openPop(code,cx,cy){const b=bld(code),r=wrap.getBoundingClientRect();
+  pop.innerHTML=`<b>${b.name}</b><span>${b.lat.toFixed(5)}, ${b.lng.toFixed(5)}</span><div><button class="btn${st.from===code?' pri':''}" data-s="from">Start here</button><button class="btn${st.to===code?' pri':''}" data-s="to">Go here</button></div>`;
+  pop.hidden=false;const pw=pop.offsetWidth,ph=pop.offsetHeight;let x=cx-r.left+12,y=cy-r.top+12;if(x+pw>r.width-8)x=cx-r.left-pw-12;if(y+ph>r.height-8)y=cy-r.top-ph-12;
+  pop.style.left=Math.max(8,x)+'px';pop.style.top=Math.max(8,y)+'px';
+  for(const btn of pop.querySelectorAll('button'))btn.onclick=()=>{if(btn.dataset.s==='from'&&st.to===code)st.to=st.from;if(btn.dataset.s==='to'&&st.from===code)st.from=st.to;st[btn.dataset.s]=code;syncSel();closePop();update(true);};
+  pop.querySelector('button').focus({preventScroll:true});}
+function closePop(){pop.hidden=true;}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closePop();});
+
+/* ---------- controls ---------- */
+const opts=[...BLD].sort((a,b)=>a.name.localeCompare(b.name)).map(b=>`<option value="${b.code}">${b.name} (${b.code})</option>`).join('');
+$('#from').innerHTML=opts;$('#to').innerHTML=opts;
+function syncSel(){$('#from').value=st.from;$('#to').value=st.to;}
+function syncTime(){$('#time').value=st.min;$('#tval').textContent=fmt(st.min);$('#date').value=st.date;}
+function syncMode(){$('#mShade').setAttribute('aria-pressed',st.mode==='shade');$('#mSun').setAttribute('aria-pressed',st.mode==='sun');$('#prefR').textContent=st.mode==='sun'?'Sunniest':'Shadiest';$('#pref').value=st.pref;
+  $('#chartT').textContent=st.mode==='sun'?'Sunshine on this walk through the day':'Shade on this walk through the day';$('#chart').setAttribute('aria-label',st.mode==='sun'?'Share of the walk in sun by time of day':'Share of the walk in shade by time of day');}
+$('#from').onchange=e=>{st.from=e.target.value;update(true);};
+$('#to').onchange=e=>{st.to=e.target.value;update(true);};
+$('#swap').onclick=()=>{[st.from,st.to]=[st.to,st.from];syncSel();update(true);};
+$('#date').onchange=e=>{if(!e.target.value)return;st.date=e.target.value;update(true);};
+let raf=0;$('#time').oninput=e=>{st.min=+e.target.value;$('#tval').textContent=fmt(st.min);if(!raf)raf=requestAnimationFrame(()=>{raf=0;update(false);});};
+$('#tip').onclick=()=>{st.min=+$('#tip').dataset.m;syncTime();update(false);};
+$('#chart').addEventListener('click',e=>{const r=$('#chart').getBoundingClientRect(),m=T0+(e.clientX-r.left-38)/(r.width-50)*(T1-T0);st.min=Math.max(T0,Math.min(T1,Math.round(m/5)*5));syncTime();update(false);});
+function nowIndy(){const f=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Indiana/Indianapolis',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}),p={};for(const x of f.formatToParts(new Date()))p[x.type]=x.value;return{date:`${p.year}-${p.month}-${p.day}`,min:(+p.hour%24)*60+ +p.minute};}
+for(const c of document.querySelectorAll('.chip'))c.onclick=()=>{const k=c.dataset.p;if(k==='now'){const n=nowIndy();st.date=n.date;st.min=Math.max(T0,Math.min(T1,Math.round(n.min/5)*5));}else if(k==='aug'){st.date='2026-08-26';st.min=870;}else{st.date='2026-06-21';st.min=1050;}syncTime();update(true);};
+$('#mShade').onclick=()=>{st.mode='shade';syncMode();update(true);};
+$('#mSun').onclick=()=>{st.mode='sun';syncMode();update(true);};
+$('#pref').oninput=e=>{st.pref=+e.target.value;doRoute();suggest();};
+$('#pref').onchange=()=>{save();scheduleChart();};
+function stopPlay(){clearInterval(playT);playT=null;$('#play').textContent='Play day';}
+$('#play').onclick=()=>{if(playT){stopPlay();return;}if(st.min>=T1)st.min=360;$('#play').textContent='Pause';
+  playT=setInterval(()=>{st.min=Math.min(T1,st.min+5);syncTime();update(false);if(st.min>=T1)stopPlay();},70);};
+
+/* ---------- about + own data ---------- */
+function aboutCounts(){$('#ntree').textContent=TREES.length.toLocaleString()+(TREES.length===1?' tree':'');$('#ngraph').textContent=`${Object.keys(NODES).length} junctions and ${EDGES.length} path segments`;}
+$('#ptab').innerHTML=[...BLD].sort((a,b)=>a.name.localeCompare(b.name)).map(b=>`<tr><td>${b.code}</td><td>${b.name}</td><td class="n">${b.lat.toFixed(5)}</td><td class="n">${b.lng.toFixed(5)}</td><td>${b.pub?'Published coordinates':'Estimated from campus map'}</td><td class="n">${b.h?b.h+' m':'–'}</td></tr>`).join('');
+const msg=t=>{$('#tmsg').textContent=t;};
+$('#tApply').onclick=()=>{try{const a=JSON.parse($('#tj').value);if(!Array.isArray(a))throw 0;const T=[];
+    for(const o of a){const la=+o.lat,lo=+o.lng;if(!isFinite(la)||!isFinite(lo)||Math.abs(la-LAT)>.03||Math.abs(lo-LNG)>.03)continue;const [x,y]=P(la,lo);T.push({x,y,h:Math.min(40,Math.max(2,+o.h||12)),r:Math.min(15,Math.max(1,+o.r||4.5))});}
+    if(!T.length)throw 0;TREES=T;aboutCounts();update(true);msg(`Loaded ${T.length} trees.`);}catch(e){msg('Could not read that. Use a JSON array of {"lat","lng","h","r"} near campus.');}};
+$('#tCopy').onclick=()=>{const j=JSON.stringify(TREES.map(t=>({lat:+(LAT-t.y/KY).toFixed(6),lng:+(LNG+t.x/KX).toFixed(6),h:t.h,r:t.r})));
+  const fb=()=>{$('#tj').value=j;msg('Copy was blocked here, so the JSON is in the box; select it and copy.');};
+  try{navigator.clipboard.writeText(j).then(()=>msg(`Copied ${TREES.length} trees.`),fb);}catch(e){fb();}};
+$('#tReset').onclick=()=>{TREES=genTrees();aboutCounts();update(true);msg('Back to the simulated trees.');};
+
+/* ---------- start ---------- */
+const setHH=()=>document.documentElement.style.setProperty('--hh',$('.top').offsetHeight+'px');setHH();addEventListener('resize',setHH);
+renderStatic();syncSel();syncTime();syncMode();aboutCounts();
+V={x:-800,y:-760,w:1600,h:1520};fitTo(campusBox(),44);
+update(true);
+new ResizeObserver(()=>{if(V){lastW=0;setVB();}}).observe(svg);
+new ResizeObserver(()=>drawChart()).observe($('#chart'));
+}
+</script>
+</body>
+</html>
